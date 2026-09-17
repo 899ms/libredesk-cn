@@ -613,6 +613,7 @@
   "auth.backToLogin": "返回登录",
   "auth.checkEmailForReset": "查看您的电子邮件中的密码重置链接。",
   "auth.confirmPassword": "确认密码",
+  "auth.emailOrPhoneRequired": "必须提供电子邮件或手机号。",
   "auth.csrfTokenMismatch": "CSRF 令牌不匹配",
   "auth.enterEmailForReset": "输入您的电子邮件以接收密码重置链接。",
   "auth.enterNewPasswordTwice": "输入两次新密码以确认。",

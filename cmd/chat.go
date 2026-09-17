@@ -376,8 +376,12 @@ func handleAuthExchange(r *fastglue.Request) error {
 	if claims.ExternalUserID == "" || len(claims.ExternalUserID) > maxExternalUserIDLength {
 		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.Ts("globals.messages.required", "name", "external_user_id"), nil, envelope.InputError)
 	}
-	if claims.Email == "" || len(claims.Email) > maxEmailLength {
-		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.Ts("globals.messages.required", "name", "email"), nil, envelope.InputError)
+	// [cn-fork] 邮箱与手机号二选一，不再强制要求邮箱
+	if claims.Email == "" && claims.PhoneNumber == "" {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("auth.emailOrPhoneRequired"), nil, envelope.InputError)
+	}
+	if claims.Email != "" && len(claims.Email) > maxEmailLength {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.Ts("globals.messages.fieldTooLong", "field", "{globals.terms.email}", "max", strconv.Itoa(maxEmailLength)), nil, envelope.InputError)
 	}
 	if claims.FirstName == "" || len(claims.FirstName) > maxNameLength {
 		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.Ts("globals.messages.required", "name", "first_name"), nil, envelope.InputError)
@@ -765,6 +769,10 @@ func saveContactAttrsAndCollectConvoAttrs(app *App, contactID int, claims *Claim
 
 // resolveOrCreateExternalContact finds a contact by external_user_id (syncing changed JWT fields) or creates one.
 func resolveOrCreateExternalContact(app *App, claims Claims) (int, error) {
+	// [cn-fork] 防御空指针
+	if app.user == nil {
+		return 0, errors.New("user manager is not initialized")
+	}
 	user, err := resolveUserFromClaims(app, claims)
 	if err != nil {
 		if envErr, ok := err.(envelope.Error); !ok || envErr.ErrorType != envelope.NotFoundError {

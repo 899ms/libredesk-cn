@@ -114,7 +114,11 @@
 
         async init () {
             try {
-                await this.fetchWidgetSettings();
+                // [cn-fork] if livechat is disabled or settings not found, silently exit without creating elements
+                const loaded = await this.fetchWidgetSettings();
+                if (!loaded) {
+                    return;
+                }
                 if (!document.body) {
                     await new Promise((resolve) => {
                         document.addEventListener('DOMContentLoaded', resolve, { once: true });
@@ -130,6 +134,10 @@
                 this.setupEventListeners();
                 this.startPageTracking();
             } catch (error) {
+                // [cn-fork] suppress error logging if it is a 404 / disabled feature
+                if (error && error.status === 404) {
+                    return;
+                }
                 console.error('Failed to initialize Libredesk Widget:', error);
             }
         }
@@ -138,8 +146,15 @@
             try {
                 const response = await fetch(`${this.config.baseURL}/api/v1/widget/chat/settings/launcher?inbox_id=${this.config.inboxID}`);
 
+                // [cn-fork] 404 indicates livechat is disabled or inbox not found; silently do not render
+                if (response.status === 404) {
+                    return false;
+                }
+
                 if (!response.ok) {
-                    throw new Error(`Error fetching widget settings. Status: ${response.status}`);
+                    const err = new Error(`Error fetching widget settings. Status: ${response.status}`);
+                    err.status = response.status;
+                    throw err;
                 }
 
                 const result = await response.json();
@@ -149,7 +164,12 @@
                 }
 
                 this.widgetSettings = result.data;
+                return true;
             } catch (error) {
+                // [cn-fork] do not log error if 404
+                if (error && error.status === 404) {
+                    return false;
+                }
                 console.error('Error fetching widget settings:', error);
                 throw error;
             }

@@ -613,6 +613,7 @@
   "auth.backToLogin": "Back to login",
   "auth.checkEmailForReset": "Check your email for the password reset link.",
   "auth.confirmPassword": "Confirm password",
+  "auth.emailOrPhoneRequired": "Either email or phone number is required.",
   "auth.csrfTokenMismatch": "CSRF token mismatch",
   "auth.enterEmailForReset": "Enter your email to receive a password reset link.",
   "auth.enterNewPasswordTwice": "Enter your new password twice to confirm.",

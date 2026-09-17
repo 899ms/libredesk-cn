@@ -1,5 +1,7 @@
 <template>
+  <!-- [cn-fork] livechat 关闭或无配置时静默不渲染 -->
   <div
+    v-if="widgetStore.config"
     class="libredesk-widget-app text-foreground bg-background"
     :class="{ dark: widgetStore.config.dark_mode, mobile: widgetStore.isMobileFullScreen }"
     :style="customColorStyle"
@@ -121,7 +123,10 @@ const setupParentMessageListeners = () => {
           chatStore.conversations = null
           await fetchInitialConversations()
         } catch (err) {
-          console.error('Failed to exchange JWT for session:', err)
+          // [cn-fork] livechat 关闭时 404 静默忽略，不报控制台错误
+          if (err?.response?.status !== 404) {
+            console.error('Failed to exchange JWT for session:', err)
+          }
         } finally {
           signalWidgetLoaded()
         }

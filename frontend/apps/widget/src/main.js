@@ -54,6 +54,10 @@ async function initWidget () {
         app.config.globalProperties.$widgetConfig = widgetConfig
         app.mount('#app')
     } catch (error) {
+        // [cn-fork] livechat 关闭时静默不渲染，控制台不输出错误
+        if (error?.response?.status === 404) {
+            return
+        }
         console.error('Error initializing widget:', error)
     }
 }
