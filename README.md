@@ -1,3 +1,5 @@
+> **本仓库是 Libredesk 的中国市场二开分支**（基线上游 `f4916f41` / v2.8.0）。方案、任务分工与进度见 [`docs-cn/`](docs-cn/)。中文语言包已补全；上游的 Crowdin / i18n-guard 工作流已移除，语言包直接在仓库内维护。
+
 <a href="https://zerodha.tech"><img src="https://zerodha.tech/static/images/github-badge.svg" align="right" alt="Zerodha Tech Badge" /></a>
 
 <br>
