@@ -104,6 +104,8 @@ type Manager struct {
 	usrStore      UserStore
 	wg            sync.WaitGroup
 	encryptionKey string
+	// [cn-fork] callback to check if email channel feature is enabled
+	emailChannelEnabled func() bool
 }
 
 // Prepared queries.
@@ -145,6 +147,13 @@ func (m *Manager) SetMessageStore(store MessageStore) {
 // SetUserStore sets the user store for the manager.
 func (m *Manager) SetUserStore(store UserStore) {
 	m.usrStore = store
+}
+
+// [cn-fork] SetEmailChannelEnabledFunc sets a function to check if email channel feature is enabled.
+func (m *Manager) SetEmailChannelEnabledFunc(fn func() bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.emailChannelEnabled = fn
 }
 
 // Register registers the inbox with the manager.
@@ -550,6 +559,11 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, inb := range m.inboxes {
+		// [cn-fork] Skip starting receiver if email channel feature is disabled.
+		if inb.Channel() == ChannelEmail && m.emailChannelEnabled != nil && !m.emailChannelEnabled() {
+			m.lo.Info("email channel feature is disabled, skipping inbox receiver", "inbox_id", inb.Identifier(), "name", inb.Name())
+			continue
+		}
 		m.startReceiver(ctx, inb)
 	}
 	return nil

@@ -10,6 +10,8 @@ import (
 
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/ws"
+	// [cn-fork]
+	"github.com/abhinavxd/libredesk/internal/feature"
 	"github.com/valyala/fasthttp"
 	"github.com/zerodha/fastglue"
 )
@@ -21,6 +23,12 @@ const (
 
 // initHandlers initializes the HTTP routes and handlers for the application.
 func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
+	// getAndHead registers both methods: uptime checkers and link validators probe with HEAD.
+	getAndHead := func(path string, h fastglue.FastRequestHandler) {
+		g.GET(path, h)
+		g.HEAD(path, h)
+	}
+
 	// Authentication.
 	g.POST("/api/v1/auth/login", rateLimit(handleLogin, "auth"))
 	g.GET("/logout", auth(handleLogout))
@@ -250,88 +258,11 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	g.PUT("/api/v1/sla/{id}", perm(handleUpdateSLA, "sla:manage"))
 	g.DELETE("/api/v1/sla/{id}", perm(handleDeleteSLA, "sla:manage"))
 
-	// AI completions.
-	g.GET("/api/v1/ai/prompts", auth(handleGetAIPrompts))
-	g.GET("/api/v1/ai/prompts/{id}", perm(handleGetAIPrompt, "ai:manage"))
-	g.POST("/api/v1/ai/prompts", perm(handleCreateAIPrompt, "ai:manage"))
-	g.PUT("/api/v1/ai/prompts/{id}", perm(handleUpdateAIPrompt, "ai:manage"))
-	g.DELETE("/api/v1/ai/prompts/{id}", perm(handleDeleteAIPrompt, "ai:manage"))
-	g.POST("/api/v1/ai/completion", auth(handleAICompletion))
+	// [cn-fork] Register AI handlers with feature gate
+	registerAIHandlers(g)
 
-	// AI provider config (completion / embedding).
-	g.GET("/api/v1/ai/config/{type}", perm(handleGetAIConfig, "ai:manage"))
-	g.PUT("/api/v1/ai/config/{type}", perm(handleUpdateAIConfig, "ai:manage"))
-	g.POST("/api/v1/ai/config/{type}/test", perm(handleTestAIConfig, "ai:manage"))
-
-	// AI custom tools.
-	g.GET("/api/v1/ai/tools", perm(handleGetAITools, "ai:manage"))
-	g.GET("/api/v1/ai/tools/{id}", perm(handleGetAITool, "ai:manage"))
-	g.POST("/api/v1/ai/tools", perm(handleCreateAITool, "ai:manage"))
-	g.PUT("/api/v1/ai/tools/{id}", perm(handleUpdateAITool, "ai:manage"))
-	g.DELETE("/api/v1/ai/tools/{id}", perm(handleDeleteAITool, "ai:manage"))
-
-	// AI knowledge base snippets.
-	g.GET("/api/v1/ai/snippets", perm(handleGetAISnippets, "ai:manage"))
-	g.POST("/api/v1/ai/snippets", perm(handleCreateAISnippet, "ai:manage"))
-	g.POST("/api/v1/ai/snippets/import-url", perm(handleImportAISnippetFromURL, "ai:manage"))
-	g.PUT("/api/v1/ai/snippets/{id}", perm(handleUpdateAISnippet, "ai:manage"))
-	g.DELETE("/api/v1/ai/snippets/{id}", perm(handleDeleteAISnippet, "ai:manage"))
-
-	// AI assistant: reply drafting + copilot chat.
-	g.POST("/api/v1/ai/generate-reply", auth(handleAIGenerateReply))
-	g.POST("/api/v1/ai/summarize", perm(handleAISummarizeConversation, "messages:write_private"))
-	g.POST("/api/v1/ai/suggest-tags", auth(handleAISuggestTags))
-	g.POST("/api/v1/ai/copilot", auth(handleAICopilot))
-	g.GET("/api/v1/ai/copilot/messages", auth(handleGetCopilotMessages))
-	g.DELETE("/api/v1/ai/copilot/messages", auth(handleClearCopilotMessages))
-
-	// Autonomous AI agents (assistants).
-	g.GET("/api/v1/ai/assistants/compact", auth(handleGetAIAssistantsCompact))
-	g.GET("/api/v1/ai/assistants", perm(handleGetAIAssistants, "ai:manage"))
-	g.GET("/api/v1/ai/assistants/{id}", perm(handleGetAIAssistant, "ai:manage"))
-	g.POST("/api/v1/ai/assistants", perm(handleCreateAIAssistant, "ai:manage"))
-	g.PUT("/api/v1/ai/assistants/{id}", perm(clearsHCCache(handleUpdateAIAssistant), "ai:manage"))
-	g.DELETE("/api/v1/ai/assistants/{id}", perm(clearsHCCache(handleDeleteAIAssistant), "ai:manage"))
-	g.POST("/api/v1/ai/assistants/{id}/preview", perm(handleAIAssistantPreview, "ai:manage"))
-	g.GET("/api/v1/ai/assistants/{id}/stats", perm(handleGetAIAssistantStats, "ai:manage"))
-
-	// AI FAQ learning: review queue for suggestions mined from resolved conversations + on/off setting.
-	g.GET("/api/v1/ai/faq-suggestions", perm(handleGetAIFaqSuggestions, "ai:manage"))
-	g.POST("/api/v1/ai/faq-suggestions/{id}/approve", perm(handleApproveAIFaqSuggestion, "ai:manage"))
-	g.POST("/api/v1/ai/faq-suggestions/{id}/reject", perm(handleRejectAIFaqSuggestion, "ai:manage"))
-	g.GET("/api/v1/ai/faq-learning", perm(handleGetAIFaqLearning, "ai:manage"))
-	g.PUT("/api/v1/ai/faq-learning", perm(handleUpdateAIFaqLearning, "ai:manage"))
-
-	// Help centers.
-	g.GET("/api/v1/help-centers", perm(handleGetHelpCenters, "help_center:manage"))
-	g.GET("/api/v1/help-centers/locales", perm(handleGetHelpCenterLocales, "help_center:manage"))
-	g.GET("/api/v1/help-centers/{id}", perm(handleGetHelpCenter, "help_center:manage"))
-	g.GET("/api/v1/help-centers/{id}/tree", perm(handleGetHelpCenterTree, "help_center:manage"))
-	g.POST("/api/v1/help-centers", perm(clearsHCCache(handleCreateHelpCenter), "help_center:manage"))
-	g.PUT("/api/v1/help-centers/{id}", perm(clearsHCCache(handleUpdateHelpCenter), "help_center:manage"))
-	g.POST("/api/v1/help-centers/{id}/preview", perm(handleHelpCenterPreview, "help_center:manage"))
-	g.PUT("/api/v1/help-centers/{id}/toggle", perm(clearsHCCache(handleToggleHelpCenterActive), "help_center:manage"))
-	g.DELETE("/api/v1/help-centers/{id}", perm(clearsHCCache(handleDeleteHelpCenter), "help_center:manage"))
-	g.GET("/api/v1/help-centers/{hc_id}/collections", perm(handleGetCollections, "help_center:manage"))
-	g.POST("/api/v1/help-centers/{hc_id}/collections", perm(clearsHCCache(handleCreateCollection), "help_center:manage"))
-	g.PUT("/api/v1/help-centers/{hc_id}/collections/{id}", perm(clearsHCCache(handleUpdateCollection), "help_center:manage"))
-	g.DELETE("/api/v1/help-centers/{hc_id}/collections/{id}", perm(clearsHCCache(handleDeleteCollection), "help_center:manage"))
-	g.PUT("/api/v1/help-centers/{hc_id}/collection-sort-order", perm(clearsHCCache(handleUpdateCollectionSortOrders), "help_center:manage"))
-	g.PUT("/api/v1/collections/{id}/toggle", perm(clearsHCCache(handleToggleCollection), "help_center:manage"))
-	g.PUT("/api/v1/collections/{col_id}/article-sort-order", perm(clearsHCCache(handleUpdateArticleSortOrders), "help_center:manage"))
-	g.GET("/api/v1/collections/{col_id}/articles/{id}", perm(handleGetArticle, "help_center:manage"))
-	g.POST("/api/v1/collections/{col_id}/articles", perm(clearsHCCache(handleCreateArticle), "help_center:manage"))
-	g.DELETE("/api/v1/collections/{col_id}/articles/{id}", perm(clearsHCCache(handleDeleteArticle), "help_center:manage"))
-	g.PUT("/api/v1/articles/{id}", perm(clearsHCCache(handleUpdateArticle), "help_center:manage"))
-	g.PUT("/api/v1/articles/{id}/collection", perm(clearsHCCache(handleMoveArticle), "help_center:manage"))
-	g.PUT("/api/v1/articles/{id}/status", perm(clearsHCCache(handleUpdateArticleStatus), "help_center:manage"))
-	g.GET("/api/v1/help-centers/{id}/insights", perm(handleGetHelpCenterInsights, "help_center:manage"))
-
-	// Public help center JSON API.
-	g.GET("/api/v1/public/help-centers/{slug}/tree", rateLimit(handleGetPublicHelpCenterTree, "public"))
-	g.GET("/api/v1/public/help-centers/{slug}/articles/{article_slug}", rateLimit(handleGetPublicHelpCenterArticle, "public"))
-	g.GET("/api/v1/public/help-centers/{slug}/search", rateLimit(handlePublicHelpCenterSearch, "public"))
-	g.POST("/api/v1/public/help-centers/{slug}/articles/{article_slug}/feedback", rateLimit(handleHelpCenterArticleFeedback, "public"))
+	// [cn-fork] Register Help Center handlers with feature gate
+	registerHelpCenterHandlers(g, getAndHead)
 
 	// Custom attributes.
 	g.GET("/api/v1/custom-attributes", auth(handleGetCustomAttributes))
@@ -343,8 +274,8 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	// Actvity logs.
 	g.GET("/api/v1/activity-logs", perm(handleGetActivityLogs, "activity_logs:manage"))
 
-	// CSAT.
-	g.POST("/api/v1/csat/{uuid}/response", rateLimit(handleSubmitCSATResponse, "public"))
+	// [cn-fork] Register CSAT handlers with feature gate
+	registerCSATHandlers(g)
 
 	// User notifications.
 	g.GET("/api/v1/notifications", auth(handleGetUserNotifications))
@@ -363,30 +294,11 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 		return handleWS(r, hub)
 	}))
 
-	// Live chat widget websocket.
-	g.GET("/widget/ws", rateLimit(handleWidgetWS, "widget"))
-
-	// Widget APIs.
-	g.GET("/api/v1/widget/chat/settings/launcher", rateLimit(validateWidgetInbox(handleGetChatLauncherSettings), "widget"))
-	g.GET("/api/v1/widget/chat/settings", rateLimit(validateWidgetInbox(handleGetChatSettings), "widget"))
-	g.POST("/api/v1/widget/chat/auth/exchange", rateLimit(validateWidgetInbox(handleAuthExchange), "widget"))
-	g.GET("/api/v1/widget/chat/auth/me", rateLimit(widgetAuth(handleWidgetAuthMe), "widget"))
-	g.POST("/api/v1/widget/chat/conversations/init", rateLimit(widgetAuth(handleChatInit), "widget"))
-	g.GET("/api/v1/widget/chat/conversations", rateLimit(widgetAuth(handleGetConversations), "widget"))
-	g.POST("/api/v1/widget/chat/conversations/{uuid}/update-last-seen", rateLimit(widgetAuth(handleChatUpdateLastSeen), "widget"))
-	g.GET("/api/v1/widget/chat/conversations/{uuid}", rateLimit(widgetAuth(handleChatGetConversation), "widget"))
-	g.POST("/api/v1/widget/chat/conversations/{uuid}/message", rateLimit(widgetAuth(handleChatSendMessage), "widget"))
-	g.POST("/api/v1/widget/media/upload", rateLimit(widgetAuth(handleWidgetMediaUpload), "widget"))
-
-	// getAndHead registers both methods: uptime checkers and link validators probe with HEAD.
-	getAndHead := func(path string, h fastglue.FastRequestHandler) {
-		g.GET(path, h)
-		g.HEAD(path, h)
-	}
+	// [cn-fork] Register LiveChat handlers with feature gate
+	registerLiveChatHandlers(g)
 
 	// Frontend pages.
 	getAndHead("/", helpCenterHostHome(notAuthPage(serveIndexPage)))
-	g.GET("/widget", validateWidgetInbox(serveWidgetIndexPage))
 	g.GET("/inboxes/{all:*}", authPage(serveIndexPage))
 	g.GET("/teams/{all:*}", authPage(serveIndexPage))
 	g.GET("/views/{all:*}", authPage(serveIndexPage))
@@ -399,9 +311,7 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 
 	// Assets and static files.
 	// FIXME: Reduce the number of routes.
-	g.GET("/widget.js", serveWidgetJS)
 	g.GET("/assets/{all:*}", serveFrontendStaticFiles)
-	g.GET("/widget/assets/{all:*}", serveWidgetStaticFiles)
 	g.GET("/images/{all:*}", serveFrontendStaticFiles)
 	g.GET("/manifest.webmanifest", serveManifest)
 	g.GET("/sw.js", serveServiceWorker)
@@ -410,19 +320,137 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	// Public pages.
 	getAndHead("/robots.txt", rateLimit(handleRobotsTxt, "public"))
 	getAndHead("/sitemap.xml", rateLimit(handleSitemapIndex, "public"))
-	getAndHead("/hc/{slug}", rateLimit(handleRedirectHelpCenterHome, "public"))
-	getAndHead("/hc/{slug}/{locale}", rateLimit(cachedHCPage(handleShowHelpCenterHome), "public"))
-	getAndHead("/hc/{slug}/{locale}/sitemap.xml", rateLimit(handleHelpCenterSitemap, "public"))
-	getAndHead("/hc/{slug}/{locale}/search", rateLimit(cachedHCNoIndexPage(handleHelpCenterSearch), "public"))
-	getAndHead("/hc/{slug}/{locale}/collections/{collection_slug}", rateLimit(cachedHCPage(handleShowHelpCenterCollection), "public"))
-	getAndHead("/hc/{slug}/{locale}/articles/{article_slug}", rateLimit(countArticleView(cachedHCPage(handleShowHelpCenterArticle)), "public"))
-
-	g.GET("/csat/{uuid}", rateLimit(handleShowCSAT, "public"))
-	g.GET("/csat/{uuid}/widget", rateLimit(handleShowCSATWidget, "public"))
-	g.POST("/csat/{uuid}", rateLimit(handleUpdateCSATResponse, "public"))
 
 	// Health check.
 	g.GET("/health", handleHealthCheck)
+}
+
+// [cn-fork] registerAIHandlers registers all AI-related routes guarded by feature.AI.
+func registerAIHandlers(g *fastglue.Fastglue) {
+	// AI completions.
+	g.GET("/api/v1/ai/prompts", feat(feature.AI, auth(handleGetAIPrompts)))
+	g.GET("/api/v1/ai/prompts/{id}", feat(feature.AI, perm(handleGetAIPrompt, "ai:manage")))
+	g.POST("/api/v1/ai/prompts", feat(feature.AI, perm(handleCreateAIPrompt, "ai:manage")))
+	g.PUT("/api/v1/ai/prompts/{id}", feat(feature.AI, perm(handleUpdateAIPrompt, "ai:manage")))
+	g.DELETE("/api/v1/ai/prompts/{id}", feat(feature.AI, perm(handleDeleteAIPrompt, "ai:manage")))
+	g.POST("/api/v1/ai/completion", feat(feature.AI, auth(handleAICompletion)))
+
+	// AI provider config (completion / embedding).
+	g.GET("/api/v1/ai/config/{type}", feat(feature.AI, perm(handleGetAIConfig, "ai:manage")))
+	g.PUT("/api/v1/ai/config/{type}", feat(feature.AI, perm(handleUpdateAIConfig, "ai:manage")))
+	g.POST("/api/v1/ai/config/{type}/test", feat(feature.AI, perm(handleTestAIConfig, "ai:manage")))
+
+	// AI custom tools.
+	g.GET("/api/v1/ai/tools", feat(feature.AI, perm(handleGetAITools, "ai:manage")))
+	g.GET("/api/v1/ai/tools/{id}", feat(feature.AI, perm(handleGetAITool, "ai:manage")))
+	g.POST("/api/v1/ai/tools", feat(feature.AI, perm(handleCreateAITool, "ai:manage")))
+	g.PUT("/api/v1/ai/tools/{id}", feat(feature.AI, perm(handleUpdateAITool, "ai:manage")))
+	g.DELETE("/api/v1/ai/tools/{id}", feat(feature.AI, perm(handleDeleteAITool, "ai:manage")))
+
+	// AI knowledge base snippets.
+	g.GET("/api/v1/ai/snippets", feat(feature.AI, perm(handleGetAISnippets, "ai:manage")))
+	g.POST("/api/v1/ai/snippets", feat(feature.AI, perm(handleCreateAISnippet, "ai:manage")))
+	g.POST("/api/v1/ai/snippets/import-url", feat(feature.AI, perm(handleImportAISnippetFromURL, "ai:manage")))
+	g.PUT("/api/v1/ai/snippets/{id}", feat(feature.AI, perm(handleUpdateAISnippet, "ai:manage")))
+	g.DELETE("/api/v1/ai/snippets/{id}", feat(feature.AI, perm(handleDeleteAISnippet, "ai:manage")))
+
+	// AI assistant: reply drafting + copilot chat.
+	g.POST("/api/v1/ai/generate-reply", feat(feature.AI, auth(handleAIGenerateReply)))
+	g.POST("/api/v1/ai/summarize", feat(feature.AI, perm(handleAISummarizeConversation, "messages:write_private")))
+	g.POST("/api/v1/ai/suggest-tags", feat(feature.AI, auth(handleAISuggestTags)))
+	g.POST("/api/v1/ai/copilot", feat(feature.AI, auth(handleAICopilot)))
+	g.GET("/api/v1/ai/copilot/messages", feat(feature.AI, auth(handleGetCopilotMessages)))
+	g.DELETE("/api/v1/ai/copilot/messages", feat(feature.AI, auth(handleClearCopilotMessages)))
+
+	// Autonomous AI agents (assistants).
+	g.GET("/api/v1/ai/assistants/compact", feat(feature.AI, auth(handleGetAIAssistantsCompact)))
+	g.GET("/api/v1/ai/assistants", feat(feature.AI, perm(handleGetAIAssistants, "ai:manage")))
+	g.GET("/api/v1/ai/assistants/{id}", feat(feature.AI, perm(handleGetAIAssistant, "ai:manage")))
+	g.POST("/api/v1/ai/assistants", feat(feature.AI, perm(handleCreateAIAssistant, "ai:manage")))
+	g.PUT("/api/v1/ai/assistants/{id}", feat(feature.AI, perm(clearsHCCache(handleUpdateAIAssistant), "ai:manage")))
+	g.DELETE("/api/v1/ai/assistants/{id}", feat(feature.AI, perm(clearsHCCache(handleDeleteAIAssistant), "ai:manage")))
+	g.POST("/api/v1/ai/assistants/{id}/preview", feat(feature.AI, perm(handleAIAssistantPreview, "ai:manage")))
+	g.GET("/api/v1/ai/assistants/{id}/stats", feat(feature.AI, perm(handleGetAIAssistantStats, "ai:manage")))
+
+	// AI FAQ learning: review queue for suggestions mined from resolved conversations + on/off setting.
+	g.GET("/api/v1/ai/faq-suggestions", feat(feature.AI, perm(handleGetAIFaqSuggestions, "ai:manage")))
+	g.POST("/api/v1/ai/faq-suggestions/{id}/approve", feat(feature.AI, perm(handleApproveAIFaqSuggestion, "ai:manage")))
+	g.POST("/api/v1/ai/faq-suggestions/{id}/reject", feat(feature.AI, perm(handleRejectAIFaqSuggestion, "ai:manage")))
+	g.GET("/api/v1/ai/faq-learning", feat(feature.AI, perm(handleGetAIFaqLearning, "ai:manage")))
+	g.PUT("/api/v1/ai/faq-learning", feat(feature.AI, perm(handleUpdateAIFaqLearning, "ai:manage")))
+}
+
+// [cn-fork] registerHelpCenterHandlers registers all Help Center routes guarded by feature.HelpCenter.
+func registerHelpCenterHandlers(g *fastglue.Fastglue, getAndHead func(path string, h fastglue.FastRequestHandler)) {
+	// Help centers.
+	g.GET("/api/v1/help-centers", feat(feature.HelpCenter, perm(handleGetHelpCenters, "help_center:manage")))
+	g.GET("/api/v1/help-centers/locales", feat(feature.HelpCenter, perm(handleGetHelpCenterLocales, "help_center:manage")))
+	g.GET("/api/v1/help-centers/{id}", feat(feature.HelpCenter, perm(handleGetHelpCenter, "help_center:manage")))
+	g.GET("/api/v1/help-centers/{id}/tree", feat(feature.HelpCenter, perm(handleGetHelpCenterTree, "help_center:manage")))
+	g.POST("/api/v1/help-centers", feat(feature.HelpCenter, perm(clearsHCCache(handleCreateHelpCenter), "help_center:manage")))
+	g.PUT("/api/v1/help-centers/{id}", feat(feature.HelpCenter, perm(clearsHCCache(handleUpdateHelpCenter), "help_center:manage")))
+	g.POST("/api/v1/help-centers/{id}/preview", feat(feature.HelpCenter, perm(handleHelpCenterPreview, "help_center:manage")))
+	g.PUT("/api/v1/help-centers/{id}/toggle", feat(feature.HelpCenter, perm(clearsHCCache(handleToggleHelpCenterActive), "help_center:manage")))
+	g.DELETE("/api/v1/help-centers/{id}", feat(feature.HelpCenter, perm(clearsHCCache(handleDeleteHelpCenter), "help_center:manage")))
+	g.GET("/api/v1/help-centers/{hc_id}/collections", feat(feature.HelpCenter, perm(handleGetCollections, "help_center:manage")))
+	g.POST("/api/v1/help-centers/{hc_id}/collections", feat(feature.HelpCenter, perm(clearsHCCache(handleCreateCollection), "help_center:manage")))
+	g.PUT("/api/v1/help-centers/{hc_id}/collections/{id}", feat(feature.HelpCenter, perm(clearsHCCache(handleUpdateCollection), "help_center:manage")))
+	g.DELETE("/api/v1/help-centers/{hc_id}/collections/{id}", feat(feature.HelpCenter, perm(clearsHCCache(handleDeleteCollection), "help_center:manage")))
+	g.PUT("/api/v1/help-centers/{hc_id}/collection-sort-order", feat(feature.HelpCenter, perm(clearsHCCache(handleUpdateCollectionSortOrders), "help_center:manage")))
+	g.PUT("/api/v1/collections/{id}/toggle", feat(feature.HelpCenter, perm(clearsHCCache(handleToggleCollection), "help_center:manage")))
+	g.PUT("/api/v1/collections/{col_id}/article-sort-order", feat(feature.HelpCenter, perm(clearsHCCache(handleUpdateArticleSortOrders), "help_center:manage")))
+	g.GET("/api/v1/collections/{col_id}/articles/{id}", feat(feature.HelpCenter, perm(handleGetArticle, "help_center:manage")))
+	g.POST("/api/v1/collections/{col_id}/articles", feat(feature.HelpCenter, perm(clearsHCCache(handleCreateArticle), "help_center:manage")))
+	g.DELETE("/api/v1/collections/{col_id}/articles/{id}", feat(feature.HelpCenter, perm(clearsHCCache(handleDeleteArticle), "help_center:manage")))
+	g.PUT("/api/v1/articles/{id}", feat(feature.HelpCenter, perm(clearsHCCache(handleUpdateArticle), "help_center:manage")))
+	g.PUT("/api/v1/articles/{id}/collection", feat(feature.HelpCenter, perm(clearsHCCache(handleMoveArticle), "help_center:manage")))
+	g.PUT("/api/v1/articles/{id}/status", feat(feature.HelpCenter, perm(clearsHCCache(handleUpdateArticleStatus), "help_center:manage")))
+	g.GET("/api/v1/help-centers/{id}/insights", feat(feature.HelpCenter, perm(handleGetHelpCenterInsights, "help_center:manage")))
+
+	// Public help center JSON API.
+	g.GET("/api/v1/public/help-centers/{slug}/tree", feat(feature.HelpCenter, rateLimit(handleGetPublicHelpCenterTree, "public")))
+	g.GET("/api/v1/public/help-centers/{slug}/articles/{article_slug}", feat(feature.HelpCenter, rateLimit(handleGetPublicHelpCenterArticle, "public")))
+	g.GET("/api/v1/public/help-centers/{slug}/search", feat(feature.HelpCenter, rateLimit(handlePublicHelpCenterSearch, "public")))
+	g.POST("/api/v1/public/help-centers/{slug}/articles/{article_slug}/feedback", feat(feature.HelpCenter, rateLimit(handleHelpCenterArticleFeedback, "public")))
+
+	// Public help center web pages.
+	getAndHead("/hc/{slug}", feat(feature.HelpCenter, rateLimit(handleRedirectHelpCenterHome, "public")))
+	getAndHead("/hc/{slug}/{locale}", feat(feature.HelpCenter, rateLimit(cachedHCPage(handleShowHelpCenterHome), "public")))
+	getAndHead("/hc/{slug}/{locale}/sitemap.xml", feat(feature.HelpCenter, rateLimit(handleHelpCenterSitemap, "public")))
+	getAndHead("/hc/{slug}/{locale}/search", feat(feature.HelpCenter, rateLimit(cachedHCNoIndexPage(handleHelpCenterSearch), "public")))
+	getAndHead("/hc/{slug}/{locale}/collections/{collection_slug}", feat(feature.HelpCenter, rateLimit(cachedHCPage(handleShowHelpCenterCollection), "public")))
+	getAndHead("/hc/{slug}/{locale}/articles/{article_slug}", feat(feature.HelpCenter, rateLimit(countArticleView(cachedHCPage(handleShowHelpCenterArticle)), "public")))
+}
+
+// [cn-fork] registerCSATHandlers registers CSAT routes guarded by feature.CSAT.
+func registerCSATHandlers(g *fastglue.Fastglue) {
+	g.POST("/api/v1/csat/{uuid}/response", feat(feature.CSAT, rateLimit(handleSubmitCSATResponse, "public")))
+	g.GET("/csat/{uuid}", feat(feature.CSAT, rateLimit(handleShowCSAT, "public")))
+	g.GET("/csat/{uuid}/widget", feat(feature.CSAT, rateLimit(handleShowCSATWidget, "public")))
+	g.POST("/csat/{uuid}", feat(feature.CSAT, rateLimit(handleUpdateCSATResponse, "public")))
+}
+
+// [cn-fork] registerLiveChatHandlers registers all LiveChat / Widget routes guarded by feature.LiveChat.
+func registerLiveChatHandlers(g *fastglue.Fastglue) {
+	// Live chat widget websocket.
+	g.GET("/widget/ws", feat(feature.LiveChat, rateLimit(handleWidgetWS, "widget")))
+
+	// Widget APIs.
+	g.GET("/api/v1/widget/chat/settings/launcher", feat(feature.LiveChat, rateLimit(validateWidgetInbox(handleGetChatLauncherSettings), "widget")))
+	g.GET("/api/v1/widget/chat/settings", feat(feature.LiveChat, rateLimit(validateWidgetInbox(handleGetChatSettings), "widget")))
+	g.POST("/api/v1/widget/chat/auth/exchange", feat(feature.LiveChat, rateLimit(validateWidgetInbox(handleAuthExchange), "widget")))
+	g.GET("/api/v1/widget/chat/auth/me", feat(feature.LiveChat, rateLimit(widgetAuth(handleWidgetAuthMe), "widget")))
+	g.POST("/api/v1/widget/chat/conversations/init", feat(feature.LiveChat, rateLimit(widgetAuth(handleChatInit), "widget")))
+	g.GET("/api/v1/widget/chat/conversations", feat(feature.LiveChat, rateLimit(widgetAuth(handleGetConversations), "widget")))
+	g.POST("/api/v1/widget/chat/conversations/{uuid}/update-last-seen", feat(feature.LiveChat, rateLimit(widgetAuth(handleChatUpdateLastSeen), "widget")))
+	g.GET("/api/v1/widget/chat/conversations/{uuid}", feat(feature.LiveChat, rateLimit(widgetAuth(handleChatGetConversation), "widget")))
+	g.POST("/api/v1/widget/chat/conversations/{uuid}/message", feat(feature.LiveChat, rateLimit(widgetAuth(handleChatSendMessage), "widget")))
+	g.POST("/api/v1/widget/media/upload", feat(feature.LiveChat, rateLimit(widgetAuth(handleWidgetMediaUpload), "widget")))
+
+	// Widget page and assets.
+	g.GET("/widget", feat(feature.LiveChat, validateWidgetInbox(serveWidgetIndexPage)))
+	g.GET("/widget.js", feat(feature.LiveChat, serveWidgetJS))
+	g.GET("/widget/assets/{all:*}", feat(feature.LiveChat, serveWidgetStaticFiles))
 }
 
 // serveIndexPage serves the main index page of the application.

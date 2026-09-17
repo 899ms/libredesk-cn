@@ -306,3 +306,15 @@ func authOrSignedURL(handler fastglue.FastRequestHandler) fastglue.FastRequestHa
 		return handler(r)
 	}
 }
+
+// [cn-fork] feat ensures that a feature module is enabled; otherwise returns 404.
+func feat(name string, handler fastglue.FastRequestHandler) fastglue.FastRequestHandler {
+	return func(r *fastglue.Request) error {
+		app := r.Context.(*App)
+		if app.feature != nil && !app.feature.Enabled(name) {
+			return r.SendErrorEnvelope(http.StatusNotFound, app.i18n.T("globals.messages.featureDisabled"), nil, envelope.NotFoundError)
+		}
+		return handler(r)
+	}
+}
+

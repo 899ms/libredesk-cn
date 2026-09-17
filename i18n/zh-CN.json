@@ -861,6 +861,7 @@
     "globals.messages.errorUploadingFile": "上传文件出错",
     "globals.messages.exportData": "导出数据",
     "globals.messages.false": "否",
+    "globals.messages.featureDisabled": "该功能模块已被停用",
     "globals.messages.fileTypeisNotAnImage": "文件类型不是图像",
     "globals.messages.goBack": "返回",
     "globals.messages.golangDurationHoursMinutes": "以小时或分钟为单位的时长。示例：1h, 30m, 1h30m",

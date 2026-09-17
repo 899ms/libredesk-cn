@@ -861,6 +861,7 @@
   "globals.messages.errorUploadingFile": "Error uploading file",
   "globals.messages.exportData": "Export data",
   "globals.messages.false": "False",
+  "globals.messages.featureDisabled": "This feature is currently disabled",
   "globals.messages.fileTypeisNotAnImage": "File type is not an image",
   "globals.messages.goBack": "Go back",
   "globals.messages.golangDurationHoursMinutes": "Duration in hours or minutes. Example: 1h, 30m, 1h30m",
