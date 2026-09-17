@@ -52,6 +52,30 @@ func handleUpdateGeneralSettings(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("globals.messages.badRequest"), nil, envelope.InputError)
 	}
 
+	// [cn-fork] support updating feature switches via general settings endpoint
+	var rawMap map[string]any
+	if err := json.Unmarshal(r.RequestCtx.PostBody(), &rawMap); err == nil {
+		if rawFeatures, ok := rawMap["features"].(map[string]any); ok && len(rawFeatures) > 0 {
+			settingsToUpdate := make(map[string]any)
+			for k, v := range rawFeatures {
+				settingsToUpdate["feature."+k+".enabled"] = v
+			}
+			if err := app.setting.Update(settingsToUpdate); err != nil {
+				return sendErrorEnvelope(r, err)
+			}
+			if err := reloadSettings(app); err != nil {
+				app.lo.Error("error reloading settings after feature update", "error", err)
+				return sendErrorEnvelope(r, envelope.NewError(envelope.GeneralError, app.i18n.T("globals.messages.somethingWentWrong"), nil))
+			}
+			// If request only updated features and no root_url provided, return early.
+			if _, hasRootURL := rawMap["app.root_url"]; !hasRootURL {
+				if _, hasRootURLPlain := rawMap["root_url"]; !hasRootURLPlain {
+					return r.SendEnvelope(true)
+				}
+			}
+		}
+	}
+
 	// Trim whitespace from string fields.
 	req.SiteName = strings.TrimSpace(req.SiteName)
 	req.FaviconURL = strings.TrimSpace(req.FaviconURL)

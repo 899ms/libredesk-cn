@@ -17,6 +17,13 @@ export const adminNavItems = [
         permission: 'general_settings:manage',
         icon: 'Settings'
       },
+      // [cn-fork] feature modules setting
+      {
+        titleKey: 'admin.features.title',
+        href: '/admin/features',
+        permission: 'general_settings:manage',
+        icon: 'SlidersHorizontal'
+      },
       {
         titleKey: 'globals.terms.businessHour',
         href: '/admin/business-hours',
@@ -38,11 +45,13 @@ export const adminNavItems = [
   {
     titleKey: 'globals.terms.helpCenter',
     badge: 'BETA',
+    feature: 'helpcenter', // [cn-fork] feature switch
     children: [
       {
         titleKey: 'globals.terms.helpCenter',
         href: '/admin/help-center',
         permission: 'help_center:manage',
+        feature: 'helpcenter', // [cn-fork]
         icon: 'BookOpen'
       }
     ]
@@ -50,6 +59,7 @@ export const adminNavItems = [
   {
     titleKey: 'admin.ai.title',
     badge: 'BETA',
+    feature: 'ai', // [cn-fork] feature switch
     children: [
       {
         titleKey: 'globals.terms.provider',

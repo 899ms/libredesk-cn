@@ -5,6 +5,7 @@ import InboxLayout from '@main/layouts/inbox/InboxLayout.vue'
 import AccountLayout from '@main/layouts/account/AccountLayout.vue'
 import AdminLayout from '@main/layouts/admin/AdminLayout.vue'
 import { useAppSettingsStore } from '../stores/appSettings'
+import { useFeatureStore } from '../stores/feature' // [cn-fork]
 import { getI18n } from '../i18n'
 import { abortRouteScope } from '../api'
 
@@ -200,6 +201,13 @@ const routes = [
             name: 'general',
             component: () => import('@main/views/admin/general/General.vue'),
             meta: { titleKey: 'globals.terms.general' }
+          },
+          // [cn-fork] feature modules management route
+          {
+            path: 'features',
+            name: 'features',
+            component: () => import('@main/views/admin/features/Features.vue'),
+            meta: { titleKey: 'admin.features.title' }
           },
           {
             path: 'ai',
@@ -692,6 +700,15 @@ router.beforeEach((to, from, next) => {
     ? i18n.global.t(titleKey, to.meta?.titleCount || 1)
     : ''
   document.title = `${pageTitle} - ${siteName}`
+  // [cn-fork] Route guard: check feature switches
+  const featureStore = useFeatureStore()
+  if (to.path.startsWith('/admin/ai') && !featureStore.isEnabled('ai')) {
+    return next({ name: 'general' })
+  }
+  if (to.path.startsWith('/admin/help-center') && !featureStore.isEnabled('helpcenter')) {
+    return next({ name: 'general' })
+  }
+
   next()
 })
 

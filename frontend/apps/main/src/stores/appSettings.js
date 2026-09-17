@@ -11,6 +11,11 @@ export const useAppSettingsStore = defineStore('settings', {
             try {
                 const response = await api.getSettings(key)
                 this.settings = response?.data?.data || {}
+                // [cn-fork] sync features to useFeatureStore if present
+                if (this.settings.features) {
+                    const { useFeatureStore } = await import('@/stores/feature')
+                    useFeatureStore().setFeatures(this.settings.features)
+                }
                 return this.settings
             } catch (error) {
                 // Pass

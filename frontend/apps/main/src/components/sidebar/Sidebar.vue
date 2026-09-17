@@ -59,6 +59,7 @@ import { useStorage } from '@vueuse/core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@main/stores/user'
+import { useFeatureStore } from '@main/stores/feature' // [cn-fork]
 import { useConversationStore } from '@main/stores/conversation'
 import { navIconMap } from '@main/constants/navIcons'
 import { useInboxNavigation } from '@main/composables/useInboxNavigation'
@@ -69,6 +70,7 @@ defineProps({
   sharedViews: { type: Array, default: () => [] }
 })
 const userStore = useUserStore()
+const featureStore = useFeatureStore() // [cn-fork]
 const conversationStore = useConversationStore()
 const settingsStore = useAppSettingsStore()
 const route = useRoute()
@@ -106,7 +108,8 @@ const handleDeleteView = () => {
 
 const { navigateToInbox, navigateToTeamInbox, navigateToViewInbox } = useInboxNavigation()
 
-const filteredAdminNavItems = computed(() => filterNavItems(adminNavItems, userStore.can))
+// [cn-fork] filter admin items by both permission and feature toggle
+const filteredAdminNavItems = computed(() => filterNavItems(adminNavItems, userStore.can, featureStore.isEnabled))
 const filteredReportsNavItems = computed(() => filterNavItems(reportsNavItems, userStore.can))
 const filteredContactsNavItems = computed(() => filterNavItems(contactNavItems, userStore.can))
 
