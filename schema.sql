@@ -1006,24 +1006,27 @@ VALUES
 -- Default AI prompts
 INSERT INTO ai_prompts ("key", "content", title)
 VALUES
-('make_friendly', 'Modify the text to make it more friendly and approachable.', 'Make Friendly'),
-('make_concise', 'Simplify the text to make it more concise and to the point.', 'Make Concise'),
-('add_empathy', 'Add empathy to the text while retaining the original meaning.', 'Add Empathy'),
-('adjust_positive_tone', 'Adjust the tone of the text to make it sound more positive and reassuring.', 'Adjust Positive Tone'),
-('make_professional', 'Rephrase the text to make it sound more formal and professional and to the point.', 'Make Professional'),
-('fix_grammar_spelling', 'Fix any spelling and grammar mistakes in the text while retaining the original meaning and tone.', 'Fix Grammar & Spelling');
+-- [cn-fork] 提示词与标题改为中文
+('make_friendly', '把这段文字改得更友好、更好接近，保持原意。', '更友好'),
+('make_concise', '把这段文字改得更简洁、直击要点，保持原意。', '更简洁'),
+('add_empathy', '在保持原意的前提下，给这段文字加入共情的语气。', '加入共情'),
+('adjust_positive_tone', '调整这段文字的语气，让它听起来更积极、更让人安心。', '语气更积极'),
+('make_professional', '把这段文字改写得更正式、更专业、更直接，保持原意。', '更专业'),
+('fix_grammar_spelling', '修正这段文字中的错别字和语法错误，保持原意和语气不变。', '修正错别字与语法');
 
 -- Default settings
 INSERT INTO settings ("key", value)
 VALUES
-    ('app.lang', '"en-US"'::jsonb),
+    -- [cn-fork] 默认语言改为简体中文
+    ('app.lang', '"zh-CN"'::jsonb),
     ('app.root_url', '"http://localhost:9000"'::jsonb),
     ('app.logo_url', '""'::jsonb),
     ('app.site_name', '"libredesk"'::jsonb),
     ('app.favicon_url', '"http://localhost:9000/favicon.ico"'::jsonb),
     ('app.max_file_upload_size', '20'::jsonb),
     ('app.allowed_file_upload_extensions', '["*"]'::jsonb),
-	('app.timezone', '"Asia/Kolkata"'::jsonb),
+	-- [cn-fork] 默认时区改为上海
+	('app.timezone', '"Asia/Shanghai"'::jsonb),
 	('app.business_hours_id', '""'::jsonb),
 	('app.show_conversation_subject', 'true'::jsonb),
 	('ai_agent.faq_learning_enabled', 'false'::jsonb),
@@ -1081,32 +1084,32 @@ VALUES
 INSERT INTO templates
 ("type", body, is_default, "name", subject, is_builtin)
 VALUES('email_notification'::template_type, '
-<p>A new conversation has been assigned to you:</p>
+<p>有一个新会话分配给了你：</p>
 
 <div>
-    Reference number: {{ .Conversation.ReferenceNumber }} <br>
-    Subject: {{ .Conversation.Subject }}
+    会话编号：{{ .Conversation.ReferenceNumber }} <br>
+    主题：{{ .Conversation.Subject }}
 </div>
 
 <p>
-    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">View Conversation</a>
+    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">查看会话</a>
 </p>
 
 <div>
-    Best regards,<br>
+    此致<br>
     Libredesk
 </div>
 
-', false, 'Conversation assigned', 'New conversation assigned to you', true);
+', false, '会话已分配', '有新会话分配给你', true);
 
 INSERT INTO templates
 ("type", body, is_default, "name", subject, is_builtin)
 VALUES('email_notification'::template_type, '
-<p>{{ .Author.FullName }} replied to a conversation assigned to you:</p>
+<p>{{ .Author.FullName }} 回复了分配给你的会话：</p>
 
 <div>
-    Reference number: {{ .Conversation.ReferenceNumber }} <br>
-    Subject: {{ .Conversation.Subject }}
+    会话编号：{{ .Conversation.ReferenceNumber }} <br>
+    主题：{{ .Conversation.Subject }}
 </div>
 
 <blockquote style="background-color: #f5f5f5; padding: 12px; margin: 16px 0; border-left: 4px solid #ddd;">
@@ -1114,24 +1117,24 @@ VALUES('email_notification'::template_type, '
 </blockquote>
 
 <p>
-    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">View Conversation</a>
+    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">查看会话</a>
 </p>
 
 <div>
-    Best regards,<br>
+    此致<br>
     Libredesk
 </div>
 
-', false, 'New reply from contact', 'New reply on conversation #{{ .Conversation.ReferenceNumber }}', true);
+', false, '联系人有新回复', '会话 #{{ .Conversation.ReferenceNumber }} 有新回复', true);
 
 INSERT INTO templates
 ("type", body, is_default, "name", subject, is_builtin)
 VALUES('email_notification'::template_type, '
-<p>{{ .Author.FullName }} replied to a conversation you are participating in:</p>
+<p>{{ .Author.FullName }} 回复了你参与的会话：</p>
 
 <div>
-    Reference number: {{ .Conversation.ReferenceNumber }} <br>
-    Subject: {{ .Conversation.Subject }}
+    会话编号：{{ .Conversation.ReferenceNumber }} <br>
+    主题：{{ .Conversation.Subject }}
 </div>
 
 <blockquote style="background-color: #f5f5f5; padding: 12px; margin: 16px 0; border-left: 4px solid #ddd;">
@@ -1139,24 +1142,24 @@ VALUES('email_notification'::template_type, '
 </blockquote>
 
 <p>
-    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">View Conversation</a>
+    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">查看会话</a>
 </p>
 
 <div>
-    Best regards,<br>
+    此致<br>
     Libredesk
 </div>
 
-', false, 'New reply on participating conversation', 'New reply on conversation #{{ .Conversation.ReferenceNumber }}', true);
+', false, '参与的会话有新回复', '会话 #{{ .Conversation.ReferenceNumber }} 有新回复', true);
 
 INSERT INTO templates
 ("type", body, is_default, "name", subject, is_builtin)
 VALUES('email_notification'::template_type, '
-<p>{{ .Author.FullName }} replied and reopened a conversation assigned to you:</p>
+<p>{{ .Author.FullName }} 的回复重新打开了分配给你的会话：</p>
 
 <div>
-    Reference number: {{ .Conversation.ReferenceNumber }} <br>
-    Subject: {{ .Conversation.Subject }}
+    会话编号：{{ .Conversation.ReferenceNumber }} <br>
+    主题：{{ .Conversation.Subject }}
 </div>
 
 <blockquote style="background-color: #f5f5f5; padding: 12px; margin: 16px 0; border-left: 4px solid #ddd;">
@@ -1164,15 +1167,15 @@ VALUES('email_notification'::template_type, '
 </blockquote>
 
 <p>
-    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">View Conversation</a>
+    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">查看会话</a>
 </p>
 
 <div>
-    Best regards,<br>
+    此致<br>
     Libredesk
 </div>
 
-', false, 'Conversation reopened', 'Conversation #{{ .Conversation.ReferenceNumber }} reopened', true);
+', false, '会话被重新打开', '会话 #{{ .Conversation.ReferenceNumber }} 已重新打开', true);
 
 INSERT INTO templates
 ("type", body, is_default, "name", subject, is_builtin)
@@ -1180,29 +1183,29 @@ VALUES (
   'email_notification'::template_type,
   '
 
-<p>This is a notification that the SLA for conversation {{ .Conversation.ReferenceNumber }} is approaching the SLA deadline for {{ .SLA.Metric }}.</p>
+<p>会话 {{ .Conversation.ReferenceNumber }} 的 {{ .SLA.Metric }} 即将到达 SLA 时限。</p>
 
 <p>
-  Details:<br>
-  - Conversation reference number: {{ .Conversation.ReferenceNumber }}<br>
-  - Metric: {{ .SLA.Metric }}<br>
-  - Due in: {{ .SLA.DueIn }}
+  详情：<br>
+  - 会话编号：{{ .Conversation.ReferenceNumber }}<br>
+  - 指标：{{ .SLA.Metric }}<br>
+  - 剩余时间：{{ .SLA.DueIn }}
 </p>
 
 <p>
-    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">View Conversation</a>
+    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">查看会话</a>
 </p>
 
 
 <p>
-  Best regards,<br>
+  此致<br>
   Libredesk
 </p>
 
 ',
   false,
-  'SLA breach warning',
-  'SLA Alert: Conversation {{ .Conversation.ReferenceNumber }} is approaching SLA deadline for {{ .SLA.Metric }}',
+  'SLA 即将超时预警',
+  'SLA 提醒：会话 {{ .Conversation.ReferenceNumber }} 的 {{ .SLA.Metric }} 即将超时',
   true
 );
 
@@ -1211,29 +1214,29 @@ INSERT INTO templates
 VALUES (
   'email_notification'::template_type,
   '
-<p>This is an urgent alert that the SLA for conversation {{ .Conversation.ReferenceNumber }} has been breached for {{ .SLA.Metric }}. Please take immediate action.</p>
+<p>紧急：会话 {{ .Conversation.ReferenceNumber }} 的 {{ .SLA.Metric }} 已超出 SLA 时限，请立即处理。</p>
 
 <p>
-  Details:<br>
-  - Conversation reference number: {{ .Conversation.ReferenceNumber }}<br>
-  - Metric: {{ .SLA.Metric }}<br>
-  - Overdue by: {{ .SLA.OverdueBy }}
+  详情：<br>
+  - 会话编号：{{ .Conversation.ReferenceNumber }}<br>
+  - 指标：{{ .SLA.Metric }}<br>
+  - 已超时：{{ .SLA.OverdueBy }}
 </p>
 
 <p>
-    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">View Conversation</a>
+    <a href="{{ RootURL }}/inboxes/assigned/conversation/{{ .Conversation.UUID }}">查看会话</a>
 </p>
 
 
 <p>
-  Best regards,<br>
+  此致<br>
   Libredesk
 </p>
 
 ',
   false,
-  'SLA breached',
-  'Urgent: SLA Breach for Conversation {{ .Conversation.ReferenceNumber }} for {{ .SLA.Metric }}',
+  'SLA 已超时',
+  '紧急：会话 {{ .Conversation.ReferenceNumber }} 的 {{ .SLA.Metric }} 已超出 SLA 时限',
   true
 );
 
@@ -1242,24 +1245,24 @@ INSERT INTO templates
 VALUES (
   'email_notification'::template_type,
   '
-<p>{{ .MentionedBy.FullName }} mentioned you in a private note on conversation #{{ .Conversation.ReferenceNumber }}.</p>
+<p>{{ .MentionedBy.FullName }} 在会话 #{{ .Conversation.ReferenceNumber }} 的内部备注中提到了你。</p>
 
 <blockquote style="background-color: #f5f5f5; padding: 12px; margin: 16px 0; border-left: 4px solid #ddd;">
 {{ .Message.Content }}
 </blockquote>
 
 <p>
-<a href="{{ RootURL }}/inboxes/mentioned/conversation/{{ .Conversation.UUID }}?scrollTo={{ .Message.UUID }}">View Conversation</a>
+<a href="{{ RootURL }}/inboxes/mentioned/conversation/{{ .Conversation.UUID }}?scrollTo={{ .Message.UUID }}">查看会话</a>
 </p>
 
 <p>
-Best regards,<br>
+此致<br>
 libredesk
 </p>
 ',
   false,
-  'Mentioned in conversation',
-  '{{ .MentionedBy.FullName }} mentioned you in conversation #{{ .Conversation.ReferenceNumber }}',
+  '在会话中被提及',
+  '{{ .MentionedBy.FullName }} 在会话 #{{ .Conversation.ReferenceNumber }} 中提到了你',
   true
 );
 
@@ -1269,58 +1272,58 @@ VALUES (
   'email_notification'::template_type,
   '
 <p style="margin: 0 0 4px; font-size: 15px; color: #374151; text-align: center; line-height: 1.5;">
-  Your conversation <strong style="color: #111827;">#{{ .Conversation.ReferenceNumber }}</strong> has been resolved.
+  你的会话 <strong style="color: #111827;">#{{ .Conversation.ReferenceNumber }}</strong> 已处理完成。
 </p>
 <p style="margin: 0 0 28px; font-size: 13px; color: #9ca3af; text-align: center;">
-  We would love to hear how it went.
+  很想听听你的感受。
 </p>
 <p style="margin: 0 0 20px; font-size: 14px; font-weight: 600; color: #374151; text-align: center;">
-  How would you rate your experience?
+  这次体验你打几分？
 </p>
 <!-- Variable CSATUUID is also available -->
 <div style="text-align: center; margin: 0 auto; max-width: 400px; font-size: 0;">
   <div style="display: inline-block; width: 72px; text-align: center; vertical-align: top; padding: 4px 0;">
     <a href="{{ .CSATLink }}?rating=1" style="text-decoration: none; display: block;">
       <span style="font-size: 34px; display: block; line-height: 1.4;">&#128546;</span>
-      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Poor</span>
+      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">很差</span>
     </a>
   </div>
   <div style="display: inline-block; width: 72px; text-align: center; vertical-align: top; padding: 4px 0;">
     <a href="{{ .CSATLink }}?rating=2" style="text-decoration: none; display: block;">
       <span style="font-size: 34px; display: block; line-height: 1.4;">&#128533;</span>
-      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Fair</span>
+      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">一般</span>
     </a>
   </div>
   <div style="display: inline-block; width: 72px; text-align: center; vertical-align: top; padding: 4px 0;">
     <a href="{{ .CSATLink }}?rating=3" style="text-decoration: none; display: block;">
       <span style="font-size: 34px; display: block; line-height: 1.4;">&#128522;</span>
-      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Good</span>
+      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">不错</span>
     </a>
   </div>
   <div style="display: inline-block; width: 72px; text-align: center; vertical-align: top; padding: 4px 0;">
     <a href="{{ .CSATLink }}?rating=4" style="text-decoration: none; display: block;">
       <span style="font-size: 34px; display: block; line-height: 1.4;">&#128515;</span>
-      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Great</span>
+      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">很好</span>
     </a>
   </div>
   <div style="display: inline-block; width: 72px; text-align: center; vertical-align: top; padding: 4px 0;">
     <a href="{{ .CSATLink }}?rating=5" style="text-decoration: none; display: block;">
       <span style="font-size: 34px; display: block; line-height: 1.4;">&#129321;</span>
-      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">Excellent</span>
+      <span style="font-size: 10px; display: block; font-weight: 600; color: #b0b5bd; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;">非常好</span>
     </a>
   </div>
 </div>
 ',
   false,
-  'CSAT request',
+  '满意度评价邀请',
   '',
   true
 );
 
 -- Default business hours
 INSERT INTO business_hours ("name", description, is_always_open, hours, holidays) VALUES
-('Default', 'Default business hours, Monday to Friday, 09:00 to 17:00.', false, '{"Monday": {"open": "09:00", "close": "17:00"}, "Tuesday": {"open": "09:00", "close": "17:00"}, "Wednesday": {"open": "09:00", "close": "17:00"}, "Thursday": {"open": "09:00", "close": "17:00"}, "Friday": {"open": "09:00", "close": "17:00"}}'::jsonb, '[]'::jsonb);
+('默认', '默认营业时间：周一至周五 09:00–17:00。', false, '{"Monday": {"open": "09:00", "close": "17:00"}, "Tuesday": {"open": "09:00", "close": "17:00"}, "Wednesday": {"open": "09:00", "close": "17:00"}, "Thursday": {"open": "09:00", "close": "17:00"}, "Friday": {"open": "09:00", "close": "17:00"}}'::jsonb, '[]'::jsonb);
 
 -- Default SLA policy
 INSERT INTO sla_policies ("name", description, first_response_time, resolution_time, next_response_time, notifications) VALUES
-('Default', 'Default SLA policy, first response within 1 hour and resolution within 24 hours.', '1h', '24h', NULL, '[]'::jsonb);
+('默认', '默认 SLA 策略：1 小时内首次响应，24 小时内解决。', '1h', '24h', NULL, '[]'::jsonb);

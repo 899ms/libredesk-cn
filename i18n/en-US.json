@@ -1616,5 +1616,15 @@
   "conversation.sidebarCounts.assigned": "{count} open conversation in my inbox | {count} open conversations in my inbox",
   "conversation.sidebarCounts.mentioned": "{count} open conversation with mentions | {count} open conversations with mentions",
   "conversation.sidebarCounts.view": "{count} conversation in this view | {count} conversations in this view",
-  "conversation.sidebarCounts.unassigned": "{count} open unassigned conversation | {count} open unassigned conversations"
+  "conversation.sidebarCounts.unassigned": "{count} open unassigned conversation | {count} open unassigned conversations",
+  "email.welcome.subject": "Welcome to {name}",
+  "email.welcome.accountCreated": "A new account has been created for you with {email}.",
+  "email.welcome.setPasswordIntro": "Click the button below to set your password and get started:",
+  "email.welcome.setPasswordButton": "Set your password",
+  "email.welcome.linkExpiry": "This link will expire in 24 hours.",
+  "email.welcome.afterSetting": "After setting your password, you can log in here.",
+  "email.resetPassword.subject": "Reset your password",
+  "email.resetPassword.intro": "We received a request to reset your password. Click the button below to create a new one:",
+  "email.resetPassword.button": "Reset password",
+  "email.resetPassword.ignore": "If you didn't request this change, you can safely ignore this email. Your password will remain unchanged."
 }
