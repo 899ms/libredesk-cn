@@ -519,6 +519,14 @@ func reloadSettings(app *App) error {
 	}
 	newConsts := initConstants()
 	app.consts.Store(newConsts)
+
+	// [cn-fork] reload feature flags
+	if app.feature != nil {
+		if err := app.feature.Reload(); err != nil {
+			app.lo.Error("error reloading feature settings", "error", err)
+		}
+	}
+
 	return nil
 }
 

@@ -40,6 +40,8 @@ import (
 	"github.com/abhinavxd/libredesk/internal/conversation"
 	"github.com/abhinavxd/libredesk/internal/conversation/priority"
 	"github.com/abhinavxd/libredesk/internal/conversation/status"
+	// [cn-fork]
+	"github.com/abhinavxd/libredesk/internal/feature"
 	"github.com/abhinavxd/libredesk/internal/helpcenter"
 	"github.com/abhinavxd/libredesk/internal/importer"
 	"github.com/abhinavxd/libredesk/internal/inbox"
@@ -137,6 +139,8 @@ type App struct {
 	fc               *fastcache.FastCache
 	importer         *importer.Importer
 	wsHub            *ws.Hub
+	// [cn-fork]
+	feature *feature.Manager
 
 	// Global state that stores data on an available app update.
 	update *AppUpdate
@@ -274,6 +278,15 @@ func main() {
 	automation.SetSystemUserID(systemUser.ID)
 	conversation.SetAIAgent(aiAgent)
 
+	// [cn-fork] Initialize feature toggle manager
+	featureMgr, err := feature.New(lo, settings)
+	if err != nil {
+		log.Fatalf("error initializing feature manager: %v", err)
+	}
+	inbox.SetEmailChannelEnabledFunc(func() bool {
+		return featureMgr.Enabled(feature.EmailChannel)
+	})
+
 	startInboxes(ctx, inbox, conversation, user, conversation.SignAvatarURL)
 
 	go automation.Run(ctx, automationWorkers)
@@ -341,6 +354,8 @@ func main() {
 		notificationPref: notificationPreference,
 		pushNotification: pushNotification,
 		wsHub:            wsHub,
+		// [cn-fork]
+		feature: featureMgr,
 	}
 	app.consts.Store(constants)
 	helpCenterCacheOpts.Logger = log.New(helpCenterCacheLogWriter{lo: app.lo}, "", 0)

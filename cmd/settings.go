@@ -34,6 +34,10 @@ func handleGetGeneralSettings(r *fastglue.Request) error {
 	settings["app.version"] = versionString
 	// Set restart required flag.
 	settings["app.restart_required"] = app.restartRequired
+	// [cn-fork] include features in general settings response
+	if app.feature != nil {
+		settings["features"] = app.feature.All()
+	}
 	return r.SendEnvelope(settings)
 }
 
