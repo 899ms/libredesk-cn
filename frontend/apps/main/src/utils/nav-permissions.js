@@ -1,9 +1,14 @@
-export const filterNavItems = (navItems, can) => {
+// [cn-fork] filterNavItems supports optional isFeatureEnabled check
+export const filterNavItems = (navItems, can, isFeatureEnabled) => {
     return navItems
         .map(item => {
+            // Check feature toggle first if provided
+            if (item.feature && isFeatureEnabled && !isFeatureEnabled(item.feature)) {
+                return null
+            }
             // Process children first
             const filteredChildren = item.children
-                ? filterNavItems(item.children, can)
+                ? filterNavItems(item.children, can, isFeatureEnabled)
                 : undefined
             // Check item's permission
             const hasAccess = item.permission ? can(item.permission) : true
