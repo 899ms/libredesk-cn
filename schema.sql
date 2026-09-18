@@ -186,6 +186,8 @@ CREATE TABLE users (
 	api_key TEXT NULL,
 	api_secret TEXT NULL,
 	api_key_last_used_at TIMESTAMPTZ NULL,
+	-- [cn-fork]
+	max_open_conversations INT DEFAULT 0 NOT NULL,
     CONSTRAINT constraint_users_on_country CHECK (LENGTH(country) <= 140),
     CONSTRAINT constraint_users_on_phone_number CHECK (LENGTH(phone_number) <= 20),
 	CONSTRAINT constraint_users_on_phone_number_country_code CHECK (LENGTH(phone_number_country_code) <= 10),
@@ -315,7 +317,9 @@ CREATE TABLE conversation_messages (
     source_id TEXT NULL,
  	sender_id BIGINT REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE NOT NULL,
     sender_type message_sender_type NOT NULL,
-    meta JSONB DEFAULT '{}'::JSONB NULL
+    meta JSONB DEFAULT '{}'::JSONB NULL,
+    -- [cn-fork]
+    seen_at TIMESTAMPTZ NULL
 );
 CREATE INDEX index_trgm_conversation_messages_on_text_content ON conversation_messages USING GIN (text_content gin_trgm_ops);
 CREATE INDEX index_conversation_messages_on_conversation_id ON conversation_messages (conversation_id);
@@ -323,6 +327,8 @@ CREATE INDEX index_conversation_messages_on_created_at ON conversation_messages 
 CREATE INDEX index_conversation_messages_on_source_id ON conversation_messages (source_id);
 CREATE INDEX index_conversation_messages_on_status ON conversation_messages (status);
 CREATE INDEX index_conversation_messages_on_conversation_id_and_created_at ON conversation_messages (conversation_id, created_at);
+-- [cn-fork]
+CREATE INDEX index_conversation_messages_on_seen_at ON conversation_messages (seen_at);
 
 DROP TABLE IF EXISTS automation_rules CASCADE;
 CREATE TABLE automation_rules (

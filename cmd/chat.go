@@ -215,6 +215,12 @@ func handleChatInit(r *fastglue.Request) error {
 	// Check if user is already authenticated (has session token).
 	contactID, _ = getWidgetContactID(r)
 	if contactID > 0 {
+		// [cn-fork] 检查联系人是否被拉黑 (enabled == false)
+		existingContact, err := app.user.Get(contactID, "", []string{umodels.UserTypeContact, umodels.UserTypeVisitor})
+		if err == nil && !existingContact.Enabled {
+			return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("widget.accessDenied"), nil, envelope.PermissionError)
+		}
+
 		// Returning user (visitor or contact) with session token.
 		// Custom attributes from JWT were already saved during /auth/exchange.
 		// Only process form-level attributes here.
@@ -400,6 +406,10 @@ func handleAuthExchange(r *fastglue.Request) error {
 	// Resolve or create the contact.
 	contactID, err := resolveOrCreateExternalContact(app, claims)
 	if err != nil {
+		// [cn-fork] 联系人已被拉黑时返回 403 禁止访问
+		if envErr, ok := err.(envelope.Error); ok && envErr.ErrorType == envelope.PermissionError {
+			return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("widget.accessDenied"), nil, envelope.PermissionError)
+		}
 		app.lo.Error("error resolving contact during auth exchange", "error", err)
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, app.i18n.T("globals.messages.somethingWentWrong"), nil, envelope.GeneralError)
 	}
@@ -1300,10 +1310,19 @@ func getSessionDuration(config livechat.Config) time.Duration {
 
 // canReply checks if the conversation is closed and if the sender is allowed to reply based on inbox settings.
 func canReply(r *fastglue.Request, conversation cmodels.Conversation) error {
+	app := r.Context.(*App)
+	// [cn-fork] 检查发送者是否被拉黑 (enabled == false)
+	contactID, _ := getWidgetContactID(r)
+	if contactID > 0 {
+		contact, err := app.user.Get(contactID, "", []string{umodels.UserTypeContact, umodels.UserTypeVisitor})
+		if err == nil && !contact.Enabled {
+			return envelope.NewError(envelope.PermissionError, app.i18n.T("widget.accessDenied"), nil)
+		}
+	}
+
 	if conversation.Status.String != cmodels.StatusClosed {
 		return nil
 	}
-	app := r.Context.(*App)
 	lcConfig, err := getWidgetConfig(r)
 	if err != nil {
 		return envelope.NewError(envelope.GeneralError, app.i18n.T("globals.messages.somethingWentWrong"), nil)

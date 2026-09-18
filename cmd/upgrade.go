@@ -50,6 +50,7 @@ var migList = []migFunc{
 	{"v2.9.0", migrations.V2_9_0},
 	// [cn-fork]
 	{"v2.9.1", migrations.V2_9_1},
+	{"v2.9.2", migrations.V2_9_2},
 }
 
 // upgrade upgrades the database to the current version by running SQL migration files

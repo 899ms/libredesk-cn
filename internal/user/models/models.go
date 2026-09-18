@@ -92,6 +92,9 @@ type User struct {
 	APIKey           null.String `db:"api_key" json:"api_key"`
 	APIKeyLastUsedAt null.Time   `db:"api_key_last_used_at" json:"api_key_last_used_at"`
 	APISecret        null.String `db:"api_secret" json:"-"`
+
+	// [cn-fork] 客服同时接待上限 (0 为不限制)
+	MaxOpenConversations int `db:"max_open_conversations" json:"max_open_conversations"`
 }
 
 // ChatUser is a user with limited fields for live chat.

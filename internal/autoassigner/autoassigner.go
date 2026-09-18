@@ -45,6 +45,8 @@ type Engine struct {
 	// Mutex to protect the balancer map
 	balanceMu              sync.Mutex
 	teamMaxAutoAssignments map[int]int
+	// [cn-fork] 客服个人接待上限映射 (user_id -> max_open_conversations)
+	userMaxConversations map[int]int
 
 	systemUser        umodels.User
 	conversationStore conversationStore
@@ -64,6 +66,7 @@ func New(teamStore teamStore, conversationStore conversationStore, systemUser um
 		systemUser:             systemUser,
 		lo:                     lo,
 		teamMaxAutoAssignments: make(map[int]int),
+		userMaxConversations:   make(map[int]int), // [cn-fork]
 		roundRobinBalancer:     make(map[int]*balance.Balance),
 	}
 	return &e, nil
@@ -158,6 +161,9 @@ func (e *Engine) populateTeamBalancer() error {
 		balancer := e.roundRobinBalancer[team.ID]
 		existingUsers := make(map[string]struct{})
 		for _, user := range users {
+			// [cn-fork] 记录客服接待上限
+			e.userMaxConversations[user.ID] = user.MaxOpenConversations
+
 			// Skip user if availability status is `away_manual` or `away_and_reassigning`
 			if user.AvailabilityStatus == umodels.AwayManual || user.AvailabilityStatus == umodels.AwayAndReassigning {
 				e.lo.Debug("user is away, skipping autoasssignment ", "team_id", team.ID, "user_id", user.ID, "availability_status", user.AvailabilityStatus)
@@ -236,6 +242,14 @@ func (e *Engine) assignConversations() error {
 			if teamMax != 0 && activeConversationsCount >= teamMax {
 				e.lo.Debug("user has reached max auto assigned conversations limit, trying next user", "user_id", userID,
 					"user_active_conversations_count", activeConversationsCount, "max_auto_assigned_conversations", teamMax)
+				continue
+			}
+
+			// [cn-fork] 检查客服个人接待上限 (max_open_conversations > 0)
+			userMax := e.userMaxConversations[userID]
+			if userMax > 0 && activeConversationsCount >= userMax {
+				e.lo.Debug("user has reached max open conversations limit, trying next user", "user_id", userID,
+					"user_active_conversations_count", activeConversationsCount, "max_open_conversations", userMax)
 				continue
 			}
 

@@ -125,6 +125,10 @@
               </span>
               <span v-else>
                 {{ getMessageTime(message.created_at) }}
+                <!-- [cn-fork] -->
+                <span v-if="isMessageRead(message)" class="ms-1 font-medium text-primary">
+                  • {{ $t('globals.terms.read') }}
+                </span>
               </span>
             </span>
           </div>
@@ -198,6 +202,14 @@ const isLoadingConversation = computed(() => chatStore.isLoadingConversation)
 
 const getMessageTime = (timestamp) => {
   return useRelativeTime(new Date(timestamp)).value
+}
+
+// [cn-fork]
+const isMessageRead = (message) => {
+  if (message.seen_at) return true
+  const agentLastSeenAt = chatStore.currentConversation?.agent_last_seen_at
+  if (!agentLastSeenAt) return false
+  return new Date(message.created_at) <= new Date(agentLastSeenAt)
 }
 
 const isQuotedTextVisible = (messageUuid) => {

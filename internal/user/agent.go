@@ -125,7 +125,8 @@ func (u *Manager) CreateAgent(firstName, lastName, email string, roles []string)
 }
 
 // UpdateAgent updates an agent with individual field parameters
-func (u *Manager) UpdateAgent(id int, firstName, lastName, email string, roles []string, enabled bool, availabilityStatus, newPassword string) error {
+// [cn-fork] 增加 maxOpenConversations 参数控制接待上限
+func (u *Manager) UpdateAgent(id int, firstName, lastName, email string, roles []string, enabled bool, availabilityStatus, newPassword string, maxOpenConversations *int) error {
 	var (
 		hashedPassword any
 		err            error
@@ -151,7 +152,12 @@ func (u *Manager) UpdateAgent(id int, firstName, lastName, email string, roles [
 		availability = null.StringFrom(availabilityStatus)
 	}
 
-	if _, err := u.q.UpdateAgent.Exec(id, firstName, lastName, email, pq.Array(roles), null.String{}, hashedPassword, enabled, availability); err != nil {
+	var maxOpen any
+	if maxOpenConversations != nil {
+		maxOpen = *maxOpenConversations
+	}
+
+	if _, err := u.q.UpdateAgent.Exec(id, firstName, lastName, email, pq.Array(roles), null.String{}, hashedPassword, enabled, availability, maxOpen); err != nil {
 		if dbutil.IsUniqueViolationError(err) {
 			return envelope.NewError(envelope.GeneralError, u.i18n.T("user.sameEmailAlreadyExists"), nil)
 		}

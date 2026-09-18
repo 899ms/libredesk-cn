@@ -53,6 +53,8 @@ type agentReq struct {
 	Enabled            bool     `json:"enabled"`
 	AvailabilityStatus string   `json:"availability_status"`
 	NewPassword        string   `json:"new_password,omitempty"`
+	// [cn-fork] 客服同时接待上限 (0 为不限制)
+	MaxOpenConversations *int `json:"max_open_conversations"`
 }
 
 // handleGetAgents returns all agents.
@@ -229,6 +231,11 @@ func handleCreateAgent(r *fastglue.Request) error {
 		app.team.UpsertUserTeams(agent.ID, req.Teams)
 	}
 
+	// [cn-fork] 设置客服同时接待上限
+	if req.MaxOpenConversations != nil && *req.MaxOpenConversations > 0 {
+		_ = app.user.UpdateAgent(agent.ID, req.FirstName, req.LastName, req.Email, req.Roles, true, "", "", req.MaxOpenConversations)
+	}
+
 	if req.SendWelcomeEmail {
 		// Generate reset token.
 		resetToken, err := app.user.SetResetPasswordToken(agent.ID)
@@ -296,7 +303,8 @@ func handleUpdateAgent(r *fastglue.Request) error {
 	oldAvailabilityStatus := agent.AvailabilityStatus
 
 	// Update agent with individual fields
-	if err = app.user.UpdateAgent(id, req.FirstName, req.LastName, req.Email, req.Roles, req.Enabled, req.AvailabilityStatus, req.NewPassword); err != nil {
+	// [cn-fork] 传递 req.MaxOpenConversations
+	if err = app.user.UpdateAgent(id, req.FirstName, req.LastName, req.Email, req.Roles, req.Enabled, req.AvailabilityStatus, req.NewPassword, req.MaxOpenConversations); err != nil {
 		return sendErrorEnvelope(r, err)
 	}
 
