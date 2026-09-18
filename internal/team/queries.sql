@@ -14,7 +14,8 @@ SELECT id, created_at, updated_at, name, emoji, conversation_assignment_type, ma
 SELECT id, created_at, updated_at, name, emoji, conversation_assignment_type, max_auto_assigned_conversations, business_hours_id, sla_policy_id, timezone from teams where id = $1;
 
 -- name: get-team-members
-SELECT u.id, t.id as team_id, u.availability_status
+-- [cn-fork] 包含 max_open_conversations
+SELECT u.id, t.id as team_id, u.availability_status, u.max_open_conversations
 FROM users u
 JOIN team_members tm ON tm.user_id = u.id
 JOIN teams t ON t.id = tm.team_id

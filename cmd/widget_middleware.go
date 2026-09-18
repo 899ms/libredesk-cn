@@ -113,8 +113,12 @@ func widgetAuth(next func(*fastglue.Request) error) func(*fastglue.Request) erro
 
 		// Verify user exists, is enabled, and is a contact or visitor.
 		u, err := app.user.Get(session.UserID, "", []string{umodels.UserTypeContact, umodels.UserTypeVisitor})
-		if err != nil || !u.Enabled {
+		if err != nil {
 			return r.SendErrorEnvelope(fasthttp.StatusUnauthorized, app.i18n.T("globals.terms.unAuthorized"), nil, envelope.UnauthorizedError)
+		}
+		// [cn-fork] 联系人或访客被拉黑(禁用)时拒绝访问，返回 403 Forbidden
+		if !u.Enabled {
+			return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("widget.accessDenied"), nil, envelope.PermissionError)
 		}
 
 		r.RequestCtx.SetUserValue(ctxWidgetContactID, session.UserID)

@@ -367,8 +367,11 @@ type queries struct {
 	InsertMessage                      *sqlx.Stmt `query:"insert-message"`
 	UpdateMessageStatus                *sqlx.Stmt `query:"update-message-status"`
 	UpdateMessageSourceID              *sqlx.Stmt `query:"update-message-source-id"`
-	DeleteMessage                      *sqlx.Stmt `query:"delete-message"`
-	DeletePrivateMessage               *sqlx.Stmt `query:"delete-private-message"`
+	// [cn-fork]
+	MarkIncomingMessagesSeen *sqlx.Stmt `query:"mark-incoming-messages-seen"`
+	MarkOutgoingMessagesSeen *sqlx.Stmt `query:"mark-outgoing-messages-seen"`
+	DeleteMessage            *sqlx.Stmt `query:"delete-message"`
+	DeletePrivateMessage     *sqlx.Stmt `query:"delete-private-message"`
 
 	// Conversation continuity queries.
 	GetOfflineLiveChatConversations *sqlx.Stmt `query:"get-offline-livechat-conversations"`
@@ -555,6 +558,18 @@ func (c *Manager) UpdateUserLastSeen(uuid string, userID int) error {
 		c.lo.Error("error upserting user last seen", "user_id", userID, "conversation_uuid", uuid, "error", err)
 		return envelope.NewError(envelope.GeneralError, c.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
+
+	// [cn-fork] Mark incoming messages as seen by agent and broadcast to widget
+	if _, err := c.q.MarkIncomingMessagesSeen.Exec(uuid); err != nil {
+		c.lo.Error("error marking incoming messages as seen", "conversation_uuid", uuid, "error", err)
+	}
+	if conv, err := c.GetConversation(0, uuid, ""); err == nil {
+		now := time.Now().Format(time.RFC3339Nano)
+		c.BroadcastConversationToWidget(conv.UUID, conv.ContactID, conv.InboxID, map[string]any{
+			"agent_last_seen_at": now,
+		})
+	}
+
 	return nil
 }
 
@@ -576,6 +591,11 @@ func (c *Manager) UpdateConversationContactLastSeen(uuid string) error {
 		}
 		c.lo.Error("error updating contact last seen timestamp", "conversation_id", uuid, "error", err)
 		return envelope.NewError(envelope.GeneralError, c.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+
+	// [cn-fork] Mark outgoing messages as seen by contact
+	if _, err := c.q.MarkOutgoingMessagesSeen.Exec(uuid); err != nil {
+		c.lo.Error("error marking outgoing messages as seen", "conversation_uuid", uuid, "error", err)
 	}
 
 	// Broadcast the property update to all subscribers.
@@ -2100,6 +2120,8 @@ func (m *Manager) BuildWidgetConversationResponse(conversation models.Conversati
 				Meta:             msg.Meta,
 				Author:           author,
 				Attachments:      attachments,
+				// [cn-fork]
+				SeenAt: msg.SeenAt,
 			})
 		}
 		resp.Messages = chatMessages

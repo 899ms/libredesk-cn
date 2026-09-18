@@ -784,6 +784,8 @@ SELECT
     m.sender_type,
     m.sender_id,
     m.meta,
+    -- [cn-fork]
+    m.seen_at,
     c.uuid as conversation_uuid,
     u.id AS "author.id",
     u.first_name AS "author.first_name",
@@ -812,7 +814,7 @@ JOIN users u ON m.sender_id = u.id
 LEFT JOIN media ON media.model_type = 'messages' AND media.model_id = m.id
 WHERE m.uuid = $1
 GROUP BY
-    m.id, m.created_at, m.updated_at, m.status, m.type, m.content, m.uuid, m.private, m.sender_type, c.uuid,
+    m.id, m.created_at, m.updated_at, m.status, m.type, m.content, m.uuid, m.private, m.sender_type, m.seen_at, c.uuid,
     u.id, u.first_name, u.last_name, u.email, u.avatar_url, u.availability_status, u.type, u.last_active_at
 ORDER BY m.created_at;
 
@@ -833,6 +835,8 @@ SELECT
    m.sender_id,
    m.sender_type,
    m.meta,
+   -- [cn-fork]
+   m.seen_at,
    $1::uuid AS conversation_uuid,
    u.id AS "author.id",
    u.first_name AS "author.first_name",
@@ -898,6 +902,22 @@ update conversation_messages set status = $1, updated_at = NOW() where uuid = $2
 
 -- name: update-message-source-id
 UPDATE conversation_messages SET source_id = $1 WHERE id = $2;
+
+-- [cn-fork]
+-- name: mark-incoming-messages-seen
+UPDATE conversation_messages
+SET seen_at = NOW(), updated_at = NOW()
+WHERE conversation_id = (SELECT id FROM conversations WHERE uuid = $1)
+  AND type = 'incoming'
+  AND seen_at IS NULL;
+
+-- [cn-fork]
+-- name: mark-outgoing-messages-seen
+UPDATE conversation_messages
+SET seen_at = NOW(), updated_at = NOW()
+WHERE conversation_id = (SELECT id FROM conversations WHERE uuid = $1)
+  AND type = 'outgoing'
+  AND seen_at IS NULL;
 
 -- name: get-offline-livechat-conversations
 SELECT

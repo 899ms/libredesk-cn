@@ -158,6 +158,18 @@
           <FormMessage />
         </FormItem>
       </FormField>
+
+      <!-- [cn-fork] 客服同时接待上限 -->
+      <FormField v-slot="{ field }" name="max_open_conversations">
+        <FormItem v-auto-animate>
+          <FormLabel>{{ t('agent.maxOpenConversations') }}</FormLabel>
+          <FormControl>
+            <Input type="number" min="0" placeholder="0" v-bind="field" />
+          </FormControl>
+          <p class="text-xs text-muted-foreground">{{ t('agent.maxOpenConversationsHelp') }}</p>
+          <FormMessage />
+        </FormItem>
+      </FormField>
     </div>
 
     <!-- API Key Management Section -->
@@ -511,6 +523,8 @@ watch(
           'teams',
           newValues.teams.map((team) => team.name)
         )
+        // [cn-fork] 保证 max_open_conversations 正确回显
+        form.setFieldValue('max_open_conversations', newValues.max_open_conversations || 0)
 
         // Update API key data
         apiKeyData.value.api_key = newValues.api_key || ''

@@ -29,9 +29,10 @@ type TeamCompact struct {
 }
 
 type TeamMember struct {
-	ID                 int    `db:"id" json:"id"`
-	AvailabilityStatus string `db:"availability_status" json:"availability_status"`
-	TeamID             int    `db:"team_id" json:"team_id"`
+	ID                   int    `db:"id" json:"id"`
+	AvailabilityStatus   string `db:"availability_status" json:"availability_status"`
+	TeamID               int    `db:"team_id" json:"team_id"`
+	MaxOpenConversations int    `db:"max_open_conversations" json:"max_open_conversations"` // [cn-fork]
 }
 
 type TeamsCompact []TeamCompact

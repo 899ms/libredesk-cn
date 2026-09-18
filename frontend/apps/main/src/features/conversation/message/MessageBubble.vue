@@ -434,6 +434,8 @@ const isDelivered = computed(
   () => isOutgoing.value && props.message.status === 'sent' && !isPrivateMessage.value
 )
 const isReadByContact = computed(() => {
+  // <!-- [cn-fork] -->
+  if (props.message.seen_at) return true
   const conversation = convStore.current
   const lastSeenAt = conversation?.contact_last_seen_at
   const isLiveChat = conversation?.inbox_channel === 'livechat'

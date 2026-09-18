@@ -109,6 +109,8 @@ type ChatMessage struct {
 	Author           MessageAuthor          `json:"author"`
 	Attachments      attachment.Attachments `json:"attachments"`
 	Meta             json.RawMessage        `json:"meta"`
+	// [cn-fork]
+	SeenAt null.Time `json:"seen_at"`
 }
 
 // ConversationListItem represents a conversation in list views
@@ -342,6 +344,8 @@ type Message struct {
 	MessageReceiverID int                    `db:"message_receiver_id" json:"-"`
 	Media             []mmodels.Media        `json:"-"`
 	Author            MessageAuthor          `db:"author" json:"author"`
+	// [cn-fork]
+	SeenAt null.Time `db:"seen_at" json:"seen_at"`
 }
 
 // IsContinuityMessage returns true if the message is a continuity email.

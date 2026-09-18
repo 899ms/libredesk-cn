@@ -49,4 +49,9 @@ export const createFormSchema = (t) => z.object({
     .optional(),
   enabled: z.boolean().optional().default(true),
   availability_status: z.string().optional().default('offline'),
+  // [cn-fork] 客服同时接待上限 (0 为不限制)
+  max_open_conversations: z.preprocess(
+    (val) => (val === '' || val === undefined || val === null ? 0 : Number(val)),
+    z.number().int().min(0).default(0)
+  ).optional(),
 })
