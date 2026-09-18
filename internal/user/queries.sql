@@ -62,7 +62,8 @@ SELECT
     u.api_key_last_used_at,
     u.external_user_id,
     u.api_secret,
-    u.max_open_conversations, -- [cn-fork]
+    -- [cn-fork]
+    u.max_open_conversations,
     array_agg(DISTINCT r.name) FILTER (WHERE r.name IS NOT NULL) AS roles,
     COALESCE(
         (SELECT json_agg(json_build_object('id', t.id, 'name', t.name, 'emoji', t.emoji))
@@ -112,7 +113,8 @@ SET first_name = COALESCE($2, first_name),
  password = COALESCE($7, password),
  enabled = COALESCE($8, enabled),
  availability_status = COALESCE($9, availability_status),
- max_open_conversations = COALESCE($10, max_open_conversations), -- [cn-fork]
+ -- [cn-fork]
+ max_open_conversations = COALESCE($10, max_open_conversations),
  updated_at = now()
 WHERE id = $1;
 

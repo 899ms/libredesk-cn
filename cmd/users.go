@@ -458,7 +458,7 @@ func handleResetPassword(r *fastglue.Request) error {
 
 	if err := app.notifier.Send(notifier.Message{
 		RecipientEmails: []string{agent.Email.String},
-		Subject:         "Reset Password",
+		Subject:         app.i18n.T("email.resetPassword.subject"), // [cn-fork] 原为硬编码英文
 		Content:         content,
 		Provider:        notifier.ProviderEmail,
 	}); err != nil {
